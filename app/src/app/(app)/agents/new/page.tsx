@@ -72,7 +72,7 @@ export default function NewAgentPage() {
             <input type="hidden" name="botId" value="" />
             <input type="hidden" name="phone" value="" />
             <input type="hidden" name="countryCode" value="+91" />
-            <p className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
+            <p className="rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent-fg">
               Simulated agents generate seeded transcripts locally. Results are labelled “simulated” everywhere and say nothing about a real agent.
             </p>
           </>

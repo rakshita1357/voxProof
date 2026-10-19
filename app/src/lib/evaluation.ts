@@ -115,7 +115,7 @@ function ruleChecks(c: TestCase, s: Scenario): { checks: Check[]; drafts: Draft[
       drafts.push({
         category: "latency",
         severity: "medium",
-        title: `Slow agent response (${max.toFixed(1)}s)`,
+        title: `Agent replied slower than ${s.maxTurnLatencySec}s`,
         observed: `${slowIdx.length} of ${lat.length} agent turns exceeded ${s.maxTurnLatencySec}s; worst ${max.toFixed(2)}s.`,
         expected: `Every agent turn starts within ${s.maxTurnLatencySec}s of the caller finishing.`,
         evidence: slowIdx.map((i) => quote(turns, i)),

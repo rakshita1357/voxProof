@@ -29,7 +29,7 @@ export function RunWizard({ agents, scenarios, personas }: { agents: SafeAgent[]
   if (!ready.length)
     return (
       <Card>
-        <p className="text-sm">No agent has passed a connection check yet. <Link href="/agents" className="text-accent underline">Check or connect an agent</Link> first.</p>
+        <p className="text-sm">No agent has passed a connection check yet. <Link href="/agents" className="text-accent-fg hover:underline">Check or connect an agent</Link> first.</p>
       </Card>
     );
 
@@ -72,7 +72,7 @@ export function RunWizard({ agents, scenarios, personas }: { agents: SafeAgent[]
               </label>
             ))}
           </div>
-          <Link href="/scenarios/new" className="mt-3 inline-block text-xs text-accent underline">Create a scenario</Link>
+          <Link href="/scenarios/new" className="mt-3 inline-block text-xs text-accent-fg hover:underline">Create a scenario</Link>
         </Card>
         <Card title={`Personas (${pIds.length})`}>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -107,7 +107,7 @@ export function RunWizard({ agents, scenarios, personas }: { agents: SafeAgent[]
               <input id="passThreshold" name="passThreshold" type="number" min="0" max="1" step="0.05" value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="input" />
             </div>
           </div>
-          <p className={`mt-3 text-sm ${total > limit ? "text-red-700" : "text-muted"}`}>
+          <p className={`mt-3 text-sm ${total > limit ? "text-fail" : "text-muted"}`}>
             {total} {agent?.provider === "demo" ? "simulated conversations" : "test calls"} (limit {limit} per run).
           </p>
         </Card>
@@ -120,11 +120,11 @@ export function RunWizard({ agents, scenarios, personas }: { agents: SafeAgent[]
             <li><b>{total}</b> conversations: {sIds.length} scenario(s) × {pIds.length} persona(s) × {samples} sample(s), language {language}.</li>
             <li><b>Checks:</b> required/prohibited phrases, Gnani disposition, per-turn latency from Gnani timestamps, and an LLM judge (accuracy, language understanding, interruption recovery, policy) at pass threshold {threshold}.</li>
             {agent?.provider === "gnani" ? (
-              <li className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
+              <li className="rounded-md border border-caution/30 bg-caution/10 p-3 text-caution">
                 Gnani will call <b>{agent.countryCode} ••••{agent.phone.slice(-4)}</b> {total} time(s), one call at a time. Whoever answers should follow the caller script shown on each case. Calls are recorded by Gnani. Expect ~2–4 minutes per call.
               </li>
             ) : (
-              <li className="rounded-md border border-violet-200 bg-violet-50 p-3 text-violet-800">Simulated: no calls are placed and no audio is produced.</li>
+              <li className="rounded-md border border-accent/30 bg-accent/10 p-3 text-accent-fg">Simulated: no calls are placed and no audio is produced.</li>
             )}
             <li className="text-muted">VoxProof never edits or deploys your agent. Recommendations are yours to apply.</li>
           </ul>

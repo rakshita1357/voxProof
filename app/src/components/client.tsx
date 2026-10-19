@@ -1,4 +1,5 @@
 "use client";
+import { Activity, LayoutDashboard, ListChecks, PhoneCall, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -14,15 +15,19 @@ export function Submit({ children, className = btnPrimary, pendingText = "Workin
   );
 }
 
+const NAV_ICONS: Record<string, LucideIcon> = { "/": LayoutDashboard, "/agents": PhoneCall, "/scenarios": ListChecks, "/runs": Activity };
+
 export function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   const path = usePathname();
   const active = href === "/" ? path === "/" : path.startsWith(href);
+  const Icon = NAV_ICONS[href];
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`rounded-md px-2.5 py-1.5 text-sm ${active ? "bg-accent-soft font-medium text-accent" : "text-muted hover:bg-canvas hover:text-ink"}`}
+      className={`flex items-center gap-2.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${active ? "bg-white/[0.07] font-medium text-ink" : "text-muted hover:bg-white/[0.04] hover:text-ink"}`}
     >
+      {Icon && <Icon size={15} aria-hidden className={active ? "text-accent-fg" : ""} />}
       {children}
     </Link>
   );
@@ -54,7 +59,7 @@ export function RunPoller({ runId, active }: { runId: string; active: boolean })
 
 export function FormError({ error }: { error?: string }) {
   return error ? (
-    <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <p role="alert" className="rounded-md border border-fail/30 bg-fail/10 px-3 py-2 text-sm text-fail">
       {error}
     </p>
   ) : null;

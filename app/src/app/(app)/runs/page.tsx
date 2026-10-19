@@ -25,7 +25,7 @@ export default async function RunsPage() {
               <td className={`${td} tabular-nums`}>{r.metrics?.total ?? "—"}</td>
               <td className={`${td} tabular-nums`}>{pct(r.metrics?.passRate)}</td>
               <td className={`${td} tabular-nums`}>{sec(r.metrics?.latency.p50)}</td>
-              <td className={`${td} text-xs`}>{r.baselineRunId ? <Link href={`/runs/${r.baselineRunId}`} className="text-accent underline">baseline</Link> : "—"}</td>
+              <td className={`${td} text-xs`}>{r.baselineRunId ? <Link href={`/runs/${r.baselineRunId}`} className="text-accent-fg hover:underline">baseline</Link> : "—"}</td>
             </tr>
           ))}
         </Table>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RunPoller, Submit } from "@/components/client";
-import { Card, Chip, Empty, PageHeader, SeverityChip, Stat, Table, btnPrimary, btnSecondary, pct, sec, td, when } from "@/components/ui";
+import { Avatar, Card, Chip, Count, Donut, Empty, Hero, LatencyHistogram, PageHeader, SeverityChip, Stat, Table, TestMatrix, groupFindings, btnPrimary, btnSecondary, pct, sec, td, when } from "@/components/ui";
 import { cancelRunAction, retestAction, retryCasesAction } from "@/lib/actions";
 import { readPage } from "@/lib/db";
 import { MIN_P95_SAMPLES, compareRuns, runMetrics } from "@/lib/metrics";
@@ -54,60 +54,73 @@ export default async function RunPage({ params }: PageProps<"/runs/[runId]">) {
         </span>
       </PageHeader>
 
-      {run.error && <p role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{run.error}</p>}
+      {run.error && <p role="alert" className="mb-4 rounded-md border border-fail/30 bg-fail/10 px-3 py-2 text-sm text-fail">{run.error}</p>}
 
-      <Card className="mb-4">
-        <div className="mb-2 flex justify-between text-sm">
-          <span>{finished} of {cases.length} cases finished</span>
-          <span className="text-muted">{m.errors ? `${m.errors} error(s)` : ""}</span>
+      <Hero>
+        <div className="flex flex-wrap items-center gap-8">
+          <Donut value={m.passRate} size={128} sub={`${m.passed} pass, ${m.failed} fail`} />
+          <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4">
+            <Stat label="Task completion" value={pct(m.taskCompletion)} hint={`${m.passed + m.failed} evaluated`} />
+            <Stat label="Reply time p50" value={sec(m.latency.p50)} hint={`${m.latency.n} replies`} />
+            <Stat label="Reply time p95" value={sec(m.latency.p95)} hint={m.latency.p95 == null ? `needs ${MIN_P95_SAMPLES}+ replies` : `${m.latency.n} replies`} />
+            <Stat label="First response p50" value={sec(m.latency.firstResponseP50)} />
+          </div>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={finished} aria-valuemin={0} aria-valuemax={cases.length}>
-          <div className="h-full bg-accent transition-all" style={{ width: `${cases.length ? (finished / cases.length) * 100 : 0}%` }} />
+        <div className="mt-6">
+          <div className="mb-2 flex justify-between text-[13px]">
+            <span className="font-medium">{finished} of {cases.length} calls finished</span>
+            <span className="text-muted">
+              {m.errors ? `${m.errors} error(s). ` : ""}{m.insufficient ? `${m.insufficient} without enough data. ` : ""}
+              {m.passed + m.failed < 5 && "Small sample: rates are indicative."}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={finished} aria-valuemin={0} aria-valuemax={cases.length}>
+            <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent-fg transition-all duration-700" style={{ width: `${cases.length ? (finished / cases.length) * 100 : 0}%` }} />
+          </div>
+          {current && (
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/60 motion-reduce:hidden" /><span className="relative h-2.5 w-2.5 rounded-full bg-accent" /></span>
+              {current.status === "calling" ? (
+                run.simulated ? "Simulating" : <>Gnani is calling <b>{agent?.countryCode} ••••{agent?.phone.slice(-4)}</b>. Tester, follow the script for</>
+              ) : "Evaluating"}
+              <Link href={`/runs/${run.id}/cases/${current.id}`} className="font-medium text-accent-fg hover:underline">
+                {scen(current.scenarioId)?.title}, {pers(current.personaId)?.name}
+              </Link>
+            </p>
+          )}
         </div>
-        {current && (
-          <p className="mt-3 text-sm">
-            {current.status === "calling" ? (
-              run.simulated ? "Simulating conversation" : <>📞 Gnani is calling <b>{agent?.countryCode} ••••{agent?.phone.slice(-4)}</b>. Tester: follow the script for </>
-            ) : "Evaluating "}
-            <Link href={`/runs/${run.id}/cases/${current.id}`} className="text-accent underline">
-              {scen(current.scenarioId)?.title} · {pers(current.personaId)?.name}
-            </Link>
-          </p>
-        )}
+      </Hero>
+
+      <Card title="Test matrix" className="mb-5" actions={<span className="text-[13px] text-muted">scenarios down, personas across. Click a square to open the call.</span>}>
+        <TestMatrix runId={run.id} scenarios={run.snapshot.scenarios} personas={run.snapshot.personas} cases={cases} />
       </Card>
 
-      <div className="mb-4 grid gap-4 lg:grid-cols-3">
-        <Card title="Summary" className="lg:col-span-2">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Stat label="Pass rate" value={pct(m.passRate)} hint={`${m.passed} pass / ${m.failed} fail`} />
-            <Stat label="Task completion" value={pct(m.taskCompletion)} hint={`${m.passed + m.failed} evaluated`} />
-            <Stat label="Turn latency p50" value={sec(m.latency.p50)} hint={`n=${m.latency.n} turns`} />
-            <Stat label="Turn latency p95" value={sec(m.latency.p95)} hint={m.latency.p95 == null ? `needs ≥${MIN_P95_SAMPLES} turns` : `n=${m.latency.n}`} />
-          </div>
-          <p className="mt-4 text-xs text-muted">
-            First response p50 {sec(m.latency.firstResponseP50)} · {m.insufficient} case(s) with insufficient data excluded from rates.
-            {m.passed + m.failed < 5 && " Small sample: treat rates as indicative, not statistically meaningful."}
-          </p>
-        </Card>
-        <Card title="Failure categories">
-          {Object.keys(m.failureCategories).length ? (
-            <ul className="space-y-1.5 text-sm">
-              {Object.entries(m.failureCategories).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
-                <li key={k} className="flex justify-between"><span>{k.replaceAll("_", " ")}</span><span className="tabular-nums text-muted">{v}</span></li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted">{active ? "None yet." : "No failures."}</p>
-          )}
-        </Card>
+      <div className="mb-5 grid gap-5 lg:grid-cols-2">
+          <Card title="Reply time distribution">
+            <LatencyHistogram values={cases.flatMap((c) => c.latency?.turnLatenciesSec ?? [])} limit={Math.min(...run.snapshot.scenarios.map((sc) => sc.maxTurnLatencySec))} height={130} />
+          </Card>
+          <Card title="Failure categories">
+            {Object.keys(m.failureCategories).length ? (
+              <ul className="space-y-2.5 text-sm">
+                {Object.entries(m.failureCategories).sort((a, b) => b[1] - a[1]).map(([k, v], _, all) => (
+                  <li key={k}>
+                    <div className="mb-1 flex justify-between"><span className="capitalize">{k.replaceAll("_", " ")}</span><span className="tabular-nums text-muted">{v}</span></div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-canvas"><div className="h-full rounded-full bg-fail/70" style={{ width: `${(v / all[0][1]) * 100}%` }} /></div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">{active ? "None yet." : "No failures."}</p>
+            )}
+          </Card>
       </div>
 
       {baseline && comparison && (
-        <Card title="Compared with baseline" className="mb-4" actions={<Link href={`/runs/${baseline.id}`} className="text-xs text-accent underline">{when(baseline.createdAt)}</Link>}>
+        <Card title="Compared with baseline" className="mb-4" actions={<Link href={`/runs/${baseline.id}`} className="text-xs text-accent-fg hover:underline">{when(baseline.createdAt)}</Link>}>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             <Stat label="Pass rate" value={pct(m.passRate)} hint={`was ${pct(baseline.metrics?.passRate)}`} />
-            <Stat label="Fixed" value={<span className="text-emerald-700">{cmpCount("fixed")}</span>} />
-            <Stat label="Regressed" value={<span className="text-red-700">{cmpCount("regressed")}</span>} />
+            <Stat label="Fixed" value={<span className="text-pass">{cmpCount("fixed")}</span>} />
+            <Stat label="Regressed" value={<span className="text-fail">{cmpCount("regressed")}</span>} />
             <Stat label="Still failing" value={cmpCount("still_failing")} />
             <Stat label="Not comparable" value={cmpCount("not_comparable")} hint="changed version, no data, or pending" />
           </div>
@@ -119,14 +132,16 @@ export default async function RunPage({ params }: PageProps<"/runs/[runId]">) {
         <div className="mb-6 space-y-4">
           {SEVS.filter((s) => findings.some((f) => f.severity === s)).map((s) => (
             <div key={s}>
-              <h3 className="mb-2 flex items-center gap-2 text-sm font-medium"><SeverityChip s={s} /> {findings.filter((f) => f.severity === s).length}</h3>
-              <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
-                {findings.filter((f) => f.severity === s).map((f) => (
-                  <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                    <Link href={`/findings/${f.id}`} className="text-sm hover:text-accent">{f.title}</Link>
-                    <span className="flex gap-1 text-xs text-muted">
-                      {scen(f.scenarioId)?.title} · {f.source === "judge" ? "LLM judge" : "rule"} {f.disposition !== "open" && <Chip value={f.disposition} />}
-                    </span>
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-medium"><SeverityChip s={s} /> <span className="text-muted">{findings.filter((f) => f.severity === s).length} across calls</span></h3>
+              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+                {groupFindings(findings.filter((f) => f.severity === s)).map(({ f, count }) => (
+                  <li key={f.id}>
+                    <Link href={`/findings/${f.id}`} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 hover:bg-canvas/70">
+                      <span className="flex items-center gap-2 text-sm font-medium">{f.title} <Count n={count} /></span>
+                      <span className="flex items-center gap-2 text-xs text-muted">
+                        {scen(f.scenarioId)?.title}, found by {f.source === "judge" ? "LLM judge" : "rule"} {f.disposition !== "open" && <Chip value={f.disposition} />}
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -147,9 +162,9 @@ export default async function RunPage({ params }: PageProps<"/runs/[runId]">) {
                 <td className={td}>
                   <Link href={`/runs/${run.id}/cases/${c.id}`} className="font-medium hover:text-accent">{scen(c.scenarioId)?.title}</Link>
                   {run.config.samples > 1 && <span className="text-xs text-muted"> #{c.sample + 1}</span>}
-                  {c.error && <div className="mt-0.5 text-xs text-red-700">{c.error}</div>}
+                  {c.error && <div className="mt-0.5 text-xs text-fail">{c.error}</div>}
                 </td>
-                <td className={`${td} text-xs`}>{pers(c.personaId)?.name}</td>
+                <td className={`${td} text-xs`}><span className="flex items-center gap-2"><Avatar id={c.personaId} name={pers(c.personaId)?.name ?? "?"} size={22} />{pers(c.personaId)?.name}</span></td>
                 <td className={td}><Chip value={c.status} /></td>
                 <td className={`${td} tabular-nums`}>{pct(c.evaluation?.score)}</td>
                 <td className={`${td} tabular-nums`}>{c.latency?.turnLatenciesSec.length ? sec(Math.max(...c.latency.turnLatenciesSec)) : "—"}</td>

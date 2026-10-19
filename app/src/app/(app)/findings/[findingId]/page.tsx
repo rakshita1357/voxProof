@@ -48,7 +48,7 @@ export default async function FindingPage({ params }: PageProps<"/findings/[find
               <ul className="space-y-2 text-sm">
                 {f.evidence.map((e) => (
                   <li key={e.turn}>
-                    <Link href={`/runs/${run.id}/cases/${f.caseId}#turn-${e.turn + 1}`} className="text-xs text-accent underline">Turn {e.turn + 1}</Link>
+                    <Link href={`/runs/${run.id}/cases/${f.caseId}#turn-${e.turn + 1}`} className="text-xs text-accent-fg hover:underline">Turn {e.turn + 1}</Link>
                     <blockquote className="mt-1 border-l-2 border-line pl-3">“{e.quote}”</blockquote>
                   </li>
                 ))}

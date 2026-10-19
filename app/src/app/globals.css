@@ -1,30 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f7f7f8;
-  --surface: #ffffff;
-  --ink: #16161d;
-  --muted: #5f6070;
-  --line: #e4e4ea;
-  --accent: #4f46e5;
-  --accent-soft: #eef0ff;
+  color-scheme: dark;
+  --canvas: #08090a;
+  --surface: #0f1011;
+  --surface-2: #17181a;
+  --ink: #f7f8f8;
+  --muted: #8a8f98;
+  --line: #23252a;
+  --accent: #5e6ad2;
+  --accent-fg: #9da4ef;
+  --accent-soft: rgba(94, 106, 210, 0.14);
+  --navy: #08090a;
+  --navy-2: #121315;
+  --pass: #4cb782;
+  --fail: #eb5757;
+  --warn: #f2994a;
+  --caution: #f2c94c;
 }
 
 @theme inline {
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
-  --font-sans: var(--font-geist-sans);
+  --color-navy: var(--navy);
+  --color-navy-2: var(--navy-2);
+  --color-pass: var(--pass);
+  --color-fail: var(--fail);
+  --color-warn: var(--warn);
+  --color-caution: var(--caution);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--canvas);
   color: var(--ink);
+  font-feature-settings: "tnum" 1;
+  font-size: 14px;
 }
 
 :focus-visible {
@@ -32,9 +51,39 @@ body {
   outline-offset: 2px;
 }
 
-.input {
-  @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none;
+/* In the components layer so utilities (w-auto, max-w-xs, …) can override per use. */
+@layer components {
+  .input {
+    @apply w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-muted/70 transition-colors hover:border-white/15 focus:border-accent focus:ring-2 focus:ring-accent/25 focus:outline-none;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-medium text-muted;
+  }
 }
-.label {
-  @apply mb-1 block text-xs font-medium text-muted;
+
+/* Login waveform: the one orchestrated motion in the app. */
+@keyframes vp-wave {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
 }
+.vp-bar {
+  transform-origin: center;
+  animation: vp-wave 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vp-bar { animation: none; }
+}
+
+/* Smooth open/close for <details> (progressive: browsers without support just snap). */
+:root { interpolate-size: allow-keywords; }
+@media (prefers-reduced-motion: no-preference) {
+  details::details-content {
+    height: 0;
+    overflow: clip;
+    transition: height 0.25s ease, content-visibility 0.25s allow-discrete;
+  }
+  details[open]::details-content { height: auto; }
+}
+summary { cursor: pointer; }
+
+::selection { background: rgba(94, 106, 210, 0.4); }
