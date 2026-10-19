@@ -15,7 +15,7 @@ function rng(seed: number) {
   };
 }
 
-const FAULTS = ["none", "none", "latency", "missing_required", "prohibited_content", "disposition"] as const;
+const FAULTS = ["none", "none", "none", "none", "none", "latency", "missing_required", "prohibited_content", "disposition"] as const;
 
 export const demoAdapter: VoiceAgentAdapter = {
   async validateConnection() {
@@ -44,14 +44,14 @@ export const demoAdapter: VoiceAgentAdapter = {
 
     const start = Math.floor(Date.now() / 1000) - 120;
     let t = start + 0.6;
-    const turns: Turn[] = [{ role: "agent", text: `Hello, this is the assistant calling about: ${scenario.context}`, t }];
+    const turns: Turn[] = [{ role: "agent", text: "Hello, this is the assistant. Am I speaking with the account holder?", t }];
     const slowTurn = 1 + Math.floor(r() * Math.max(1, scenario.callerScript.length - 1));
     scenario.callerScript.forEach((line, i) => {
       t += 3 + r() * 4;
       turns.push({ role: "caller", text: line, t, interrupted: persona.id === "p-interrupter" && i === 1, language: persona.language });
       t += fault === "latency" && i === slowTurn - 1 ? 3.6 + r() : 0.7 + r() * 0.9;
       const last = i === scenario.callerScript.length - 1;
-      let reply = last ? `Thank you. To confirm: ${scenario.expectedOutcome}` : "Understood. Let me help you with that.";
+      let reply = last ? "Thank you, I have noted that." : "Understood. Let me help you with that.";
       if (last && fault !== "missing_required") reply += ` (${scenario.requiredPhrases.join(", ")})`;
       if (last && fault === "missing_required") reply = "Okay, thank you for your time. Goodbye.";
       if (i === 0 && fault === "prohibited_content") reply = `Please note, ${scenario.prohibitedPhrases[0]} may apply.`;

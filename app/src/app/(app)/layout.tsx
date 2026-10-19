@@ -24,7 +24,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             </Suspense>
           ))}
         </nav>
-        <form action={logout} className="hidden px-4 md:absolute md:bottom-4 md:block">
+        <form action={logout} className="px-4 pb-3 md:absolute md:bottom-4 md:pb-0">
           <button className="text-xs text-muted hover:text-ink">Sign out</button>
         </form>
       </aside>
