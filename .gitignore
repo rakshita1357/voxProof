@@ -14,8 +14,9 @@ app/node_modules/
 /coverage
 
 # next.js
-/.next/
+app/.next/
 /out/
+package-lock.json
 
 # production
 /build
@@ -39,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# voxproof local data store
+/app/data/
