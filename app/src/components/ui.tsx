@@ -126,7 +126,7 @@ export function Waveform({ bars = 48, className = "", animate = false }: { bars?
           <span
             key={i}
             className={`w-[3px] shrink-0 rounded-full bg-current ${animate ? "vp-bar" : ""}`}
-            style={{ height: `${Math.min(100, h)}%`, animationDelay: animate ? `${(i % 12) * 0.09}s` : undefined }}
+            style={{ height: `${Math.min(100, h).toFixed(1)}%`, animationDelay: animate ? `${(i % 12) * 0.09}s` : undefined }}
           />
         );
       })}
