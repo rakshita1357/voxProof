@@ -10,6 +10,7 @@ Run repeatable test calls, catch failures with evidence, and get specific fixes.
 `Next.js 16` · `TypeScript` · `Tailwind 4` · `Zod` · `Claude judge`
 
 </div>
+<img width="1851" height="934" alt="image" src="https://github.com/user-attachments/assets/cb68f7ee-60ae-4140-82b5-5a264d8e8b68" />
 
 ---
 
