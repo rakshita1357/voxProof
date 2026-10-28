@@ -7,7 +7,7 @@
 **Autonomous QA for [Gnani.ai](https://gnani.ai) voice agents.**
 Run repeatable test calls, catch failures with evidence, and get specific fixes. VoxProof never touches your agent.
 
-`Next.js 16` · `TypeScript` · `Tailwind 4` · `Zod` · `Claude judge`
+`Next.js 16` · `TypeScript` · `Tailwind 4` · `Zod` · `LLM judge`
 
 </div>
 <img width="1851" height="934" alt="image" src="https://github.com/user-attachments/assets/cb68f7ee-60ae-4140-82b5-5a264d8e8b68" />
@@ -31,7 +31,7 @@ VoxProof turns that into a test suite.
       ◀────────────────────────────────┘
       │
       ▼
-  Rule checks ─▶ Claude judge ─▶ Findings + fixes ─▶ Re-test ─▶ Fixed / Regressed
+  Rule checks ─▶ LLM judge ─▶ Findings + fixes ─▶ Re-test ─▶ Fixed / Regressed
 ```
 
 1. **Connect** a Gnani agent: botId, API key and a whitelisted tester number.
@@ -68,8 +68,10 @@ npm run dev                    # http://localhost:3000
 | `APP_PASSWORD` | ✅ | Workspace sign-in |
 | `SESSION_SECRET` | ✅ | Signs the session cookie (32+ chars) |
 | `ENCRYPTION_KEY` | ✅ | AES-256-GCM key for stored Gnani API keys (32+ chars) |
-| `ANTHROPIC_API_KEY` | — | Enables the LLM judge. Without it, only deterministic checks run |
-| `EVALUATOR_MODEL` | — | Judge model, default `claude-opus-5-5` |
+| `EVALUATOR_PROVIDER` | — | `groq` or `openrouter`; selects its API URL and default model |
+| `EVALUATOR_API_KEY` | — | Enables the LLM judge. Without it, only deterministic checks run |
+| `EVALUATOR_API_URL` | — | Optional OpenAI-compatible `chat/completions` URL; overrides the provider URL |
+| `EVALUATOR_MODEL` | — | Optional model override |
 | `VOXPROOF_DATA_FILE` | — | Data store path, default `app/data/voxproof.json` |
 
 Generate secrets with `openssl rand -base64 48`.
@@ -103,7 +105,7 @@ app/src/
 ├── app/api/            internal API (contract above)
 ├── lib/adapters/       gnani/ (real) · demo/ (simulated) behind VoiceAgentAdapter
 ├── lib/service.ts      run state machine: trigger → poll → evaluate → finalize
-├── lib/evaluation.ts   rule checks + Claude judge (rubric-v1)
+├── lib/evaluation.ts   rule checks + LLM judge (rubric-v1)
 ├── lib/metrics.ts      pass rate, percentiles, baseline comparison (+ tests)
 └── proxy.ts            auth gate
 ```
