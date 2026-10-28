@@ -12,7 +12,7 @@ const csv = z
 export const AgentInput = z
   .object({
     name: z.string().trim().min(1).max(80),
-    provider: z.enum(["gnani", "demo"]),
+    provider: z.literal("gnani"),
     botId: z.string().trim().max(64).regex(/^[A-Za-z0-9_-]*$/, "Agent ID may only contain letters, digits, - and _"),
     environment: z.enum(["development", "staging", "production"]).default("development"),
     apiKey: z.string().trim().max(500).optional(),
@@ -21,7 +21,6 @@ export const AgentInput = z
     authorized: z.literal("on", { message: "You must confirm you are authorised to test this agent and number" }),
   })
   .superRefine((v, ctx) => {
-    if (v.provider !== "gnani") return;
     if (!v.botId) ctx.addIssue({ code: "custom", path: ["botId"], message: "Gnani agent ID (botId) is required" });
     if (!v.apiKey) ctx.addIssue({ code: "custom", path: ["apiKey"], message: "Gnani API key is required" });
     if (v.phone.length < 6) ctx.addIssue({ code: "custom", path: ["phone"], message: "Whitelisted tester phone is required" });

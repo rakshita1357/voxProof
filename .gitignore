@@ -44,3 +44,4 @@ next-env.d.ts
 # voxproof local data store
 /app/data/
 !app/.env.example
+app/.worktrees/

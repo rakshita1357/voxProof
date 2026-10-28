@@ -94,8 +94,8 @@ export function Stat({ label, value, hint, tone }: { label: string; value: React
 }
 
 export const btn = "inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition active:scale-[0.98] disabled:opacity-50";
-export const btnPrimary = `${btn} bg-accent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-[#6c78e0]`;
-export const btnSecondary = `${btn} border border-line bg-surface-2 text-ink hover:border-white/15 hover:bg-[#1d1e21]`;
+export const btnPrimary = `${btn} bg-accent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-[#2ea043]`;
+export const btnSecondary = `${btn} border border-line bg-surface-2 text-ink hover:border-[#8b949e] hover:bg-[#30363d]`;
 
 export const pct = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 export const sec = (v: number | null | undefined) => (v == null ? "—" : `${v.toFixed(2)}s`);
@@ -295,11 +295,11 @@ export function LatencyHistogram({ values, limit, height = 120 }: { values: numb
   );
 }
 
-/** Page-top summary panel: flat surface, hairline border, Linear-style. */
+/** Page-top summary panel. */
 export function Hero({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <section className={`relative mb-5 overflow-hidden rounded-[10px] border border-line bg-surface p-5 ${className}`}>
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
       {children}
     </section>
   );

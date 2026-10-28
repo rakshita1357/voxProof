@@ -2,21 +2,21 @@
 
 :root {
   color-scheme: dark;
-  --canvas: #08090a;
-  --surface: #0f1011;
-  --surface-2: #17181a;
-  --ink: #f7f8f8;
-  --muted: #8a8f98;
-  --line: #23252a;
-  --accent: #5e6ad2;
-  --accent-fg: #9da4ef;
-  --accent-soft: rgba(94, 106, 210, 0.14);
-  --navy: #08090a;
-  --navy-2: #121315;
-  --pass: #4cb782;
-  --fail: #eb5757;
-  --warn: #f2994a;
-  --caution: #f2c94c;
+  --canvas: #0d1117;
+  --surface: #161b22;
+  --surface-2: #21262d;
+  --ink: #e6edf3;
+  --muted: #8b949e;
+  --line: #30363d;
+  --accent: #238636;
+  --accent-fg: #3fb950;
+  --accent-soft: rgba(46, 160, 67, 0.16);
+  --navy: #0d1117;
+  --navy-2: #161b22;
+  --pass: #3fb950;
+  --fail: #f85149;
+  --warn: #d29922;
+  --caution: #d29922;
 }
 
 @theme inline {
@@ -35,13 +35,14 @@
   --color-fail: var(--fail);
   --color-warn: var(--warn);
   --color-caution: var(--caution);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 body {
   background: var(--canvas);
   color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   font-feature-settings: "tnum" 1;
   font-size: 14px;
 }
@@ -86,4 +87,4 @@ body {
 }
 summary { cursor: pointer; }
 
-::selection { background: rgba(94, 106, 210, 0.4); }
+::selection { background: rgba(31, 111, 235, 0.35); }

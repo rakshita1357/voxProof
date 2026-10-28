@@ -6,7 +6,7 @@ export const RUBRIC_VERSION = "rubric-v1";
 const PROVIDERS = {
   groq: {
     url: "https://api.groq.com/openai/v1/chat/completions",
-    model: "llama-3.3-70b-versatile",
+    model: "openai/gpt-oss-20b",
   },
   openrouter: {
     url: "https://openrouter.ai/api/v1/chat/completions",

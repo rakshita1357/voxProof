@@ -4,11 +4,13 @@ import { Chip, Empty, PageHeader, Table, btnPrimary, btnSecondary, td, when } fr
 import { testConnectionAction } from "@/lib/actions";
 import { readPage, safeAgent } from "@/lib/db";
 
-export default async function AgentsPage() {
-  const agents = (await readPage()).agents.map(safeAgent);
+export default async function AgentsPage({ searchParams }: PageProps<"/agents">) {
+  const selected = String((await searchParams).agent ?? "");
+  const allAgents = (await readPage()).agents.map(safeAgent);
+  const agents = selected ? allAgents.filter((agent) => agent.id === selected) : allAgents;
   return (
     <>
-      <PageHeader title="Agents" actions={<Link href="/agents/new" className={btnPrimary}>Connect agent</Link>}>
+      <PageHeader title={selected ? "Agent" : "Agents"} actions={<Link href="/agents/new" className={btnPrimary}>Connect agent</Link>}>
         Gnani Inya agents VoxProof can place test calls through.
       </PageHeader>
       {!agents.length ? (

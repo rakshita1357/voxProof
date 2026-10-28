@@ -20,10 +20,12 @@ const ACTIVITY: Record<string, string> = {
   "scenario.regression_created": "Regression test created",
 };
 
-export default async function Overview() {
+export default async function Overview({ searchParams }: PageProps<"/">) {
+  const selected = String((await searchParams).agent ?? "");
   const db = await readPage();
-  const latest = db.runs[0];
-  const done = db.runs.filter((r) => r.status === "completed" && r.metrics?.passRate != null).slice(0, 12).reverse();
+  const agentRuns = selected ? db.runs.filter((run) => run.agentId === selected) : db.runs;
+  const latest = agentRuns[0];
+  const done = agentRuns.filter((r) => r.status === "completed" && r.metrics?.passRate != null).slice(0, 12).reverse();
   const findings = groupFindings(
     db.findings
       .filter((f) => f.disposition === "open" && (f.severity === "critical" || f.severity === "high"))
@@ -43,7 +45,7 @@ export default async function Overview() {
         <PageHeader title="Welcome to VoxProof">Three steps to your first scored test call.</PageHeader>
         <ol className="grid gap-4 md:grid-cols-3">
           {[
-            ["Connect a Gnani agent", "Add the botId, an API key and a tester number Gnani has whitelisted. No account yet? Use a simulated agent."],
+            ["Connect a Gnani agent", "Add the botId, an API key and a tester number Gnani has whitelisted."],
             ["Pick scenarios and personas", "Start with the built-in library: promise to pay, wrong number, callback, and four caller personas."],
             ["Launch and review", "Watch calls complete, open any failure for the exact turns, and get the change to make in Gnani."],
           ].map(([t, d], i) => (

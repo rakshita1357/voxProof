@@ -2,8 +2,10 @@ import Link from "next/link";
 import { Chip, Empty, PageHeader, Table, btnPrimary, pct, sec, td, when } from "@/components/ui";
 import { readPage } from "@/lib/db";
 
-export default async function RunsPage() {
-  const { runs } = await readPage();
+export default async function RunsPage({ searchParams }: PageProps<"/runs">) {
+  const selected = String((await searchParams).agent ?? "");
+  const { runs: allRuns } = await readPage();
+  const runs = selected ? allRuns.filter((run) => run.agentId === selected) : allRuns;
   return (
     <>
       <PageHeader title="Runs" actions={<Link href="/runs/new" className={btnPrimary}>New test run</Link>} />
