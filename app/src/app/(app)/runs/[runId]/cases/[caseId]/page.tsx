@@ -27,7 +27,7 @@ export default async function CasePage({ params }: PageProps<"/runs/[runId]/case
         <span className="flex flex-wrap items-center gap-2">
           <Chip value={c.status} /> {run.simulated && <Chip value="simulated" label="Simulated data" />}
           <span>Scenario v{c.scenarioVersion} · seed {c.seed}</span>
-          <RunPoller runId={run.id} active={pending && (run.status === "running" || run.status === "queued")} />
+          <RunPoller runId={run.id} active={pending && (run.status === "running" || run.status === "queued") && (db.agents.find((a) => a.id === run.agentId)?.provider !== "gnani" || c.status === "evaluating")} />
         </span>
       </PageHeader>
 
@@ -35,7 +35,7 @@ export default async function CasePage({ params }: PageProps<"/runs/[runId]/case
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          {c.call && !run.simulated && (
+          {c.call && !run.simulated && db.agents.find((a) => a.id === run.agentId)?.provider !== "gnani" && (
             <Card title="Recording">
               <div className="mb-3 h-10 text-accent/30"><Waveform bars={96} /></div>
               <audio controls preload="none" src={`/api/cases/${c.id}/audio`} className="w-full">

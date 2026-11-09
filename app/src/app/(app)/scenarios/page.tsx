@@ -4,6 +4,7 @@ import { Card, Chip, Empty, PageHeader, SeverityChip, Table, btnPrimary, btnSeco
 import { duplicateScenario, savePersona } from "@/lib/actions";
 import { readPage } from "@/lib/db";
 import type { Persona } from "@/lib/types";
+import { ScenarioImport } from "@/components/scenario-import";
 
 export default async function ScenariosPage({ searchParams }: PageProps<"/scenarios">) {
   const sp = await searchParams;
@@ -18,9 +19,10 @@ export default async function ScenariosPage({ searchParams }: PageProps<"/scenar
   return (
     <>
       <PageHeader title="Scenarios" actions={<Link href="/scenarios/new" className={btnPrimary}>New scenario</Link>}>
-        Each run combines scenarios × personas × samples into test calls.
+        Each run combines scenarios × personas × samples into QA cases.
       </PageHeader>
 
+      <ScenarioImport />
       <form className="mb-4 flex flex-wrap gap-2" role="search">
         <input name="q" defaultValue={q} placeholder="Search scenarios" aria-label="Search scenarios" className="input max-w-xs" />
         <select name="category" defaultValue={category} aria-label="Category" className="input w-auto">

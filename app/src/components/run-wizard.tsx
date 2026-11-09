@@ -7,7 +7,7 @@ import { FormError, Submit } from "./client";
 import { Card, Chip, SeverityChip, btnSecondary } from "./ui";
 
 const STEPS = ["Agent", "Scenarios & personas", "Limits & language", "Review"];
-const MAX = { gnani: 12, demo: 36 };
+const MAX = { gnani: 1000, demo: 36 };
 
 export function RunWizard({ agents, scenarios, personas }: { agents: SafeAgent[]; scenarios: Scenario[]; personas: Persona[] }) {
   const [state, action] = useActionState(createRunAction, undefined);
@@ -61,6 +61,7 @@ export function RunWizard({ agents, scenarios, personas }: { agents: SafeAgent[]
 
       <div hidden={step !== 1} className="space-y-4">
         <Card title={`Scenarios (${sIds.length})`}>
+          <button type="button" className={btnSecondary} onClick={() => setSIds(sIds.length === scenarios.length ? [] : scenarios.map((s) => s.id))}>{sIds.length === scenarios.length ? "Clear selection" : "Select all scenarios"}</button>
           <div className="space-y-2">
             {scenarios.map((s) => (
               <label key={s.id} className="flex items-start gap-3 text-sm">
@@ -108,7 +109,7 @@ export function RunWizard({ agents, scenarios, personas }: { agents: SafeAgent[]
             </div>
           </div>
           <p className={`mt-3 text-sm ${total > limit ? "text-fail" : "text-muted"}`}>
-            {total} {agent?.provider === "demo" ? "simulated conversations" : "test calls"} (limit {limit} per run).
+            {total} {agent?.provider === "demo" ? "simulated conversations" : "evidence cases"} (limit {limit} per run).
           </p>
         </Card>
       </div>
@@ -121,7 +122,7 @@ export function RunWizard({ agents, scenarios, personas }: { agents: SafeAgent[]
             <li><b>Checks:</b> required/prohibited phrases, Gnani disposition, per-turn latency from Gnani timestamps, and an LLM judge (accuracy, language understanding, interruption recovery, policy) at pass threshold {threshold}.</li>
             {agent?.provider === "gnani" ? (
               <li className="rounded-md border border-caution/30 bg-caution/10 p-3 text-caution">
-                Gnani will call <b>{agent.countryCode} ••••{agent.phone.slice(-4)}</b> {total} time(s), one call at a time. Whoever answers should follow the caller script shown on each case. Calls are recorded by Gnani. Expect ~2–4 minutes per call.
+                VoxProof prepares {total} cases. Test the agent in Gnani, then import the real conversation transcripts and timestamps. Gnani console access and dialing require a supported integration.
               </li>
             ) : (
               <li className="rounded-md border border-accent/30 bg-accent/10 p-3 text-accent-fg">Simulated: no calls are placed and no audio is produced.</li>

@@ -11,14 +11,14 @@ export default async function AgentsPage({ searchParams }: PageProps<"/agents">)
   return (
     <>
       <PageHeader title={selected ? "Agent" : "Agents"} actions={<Link href="/agents/new" className={btnPrimary}>Connect agent</Link>}>
-        Gnani Inya agents VoxProof can place test calls through.
+        Gnani console agents registered for evidence-based QA.
       </PageHeader>
       {!agents.length ? (
         <Empty title="No agents connected" action={<Link href="/agents/new" className={btnPrimary}>Connect agent</Link>}>
-          You’ll need a Gnani API key with <code>agents</code> and <code>conversations</code> permissions, the agent’s botId, and a tester phone number whitelisted by Gnani.
+          Create the agent in Gnani, then add its botId here. No Agent Builder API key is needed.
         </Empty>
       ) : (
-        <Table head={["Agent", "Target", "Status", "Credentials", "Last tested", ""]}>
+        <Table head={["Agent", "Target", "Status", "Evidence", "Last tested", ""]}>
           {agents.map((a) => (
             <tr key={a.id}>
               <td className={td}>
@@ -42,18 +42,18 @@ export default async function AgentsPage({ searchParams }: PageProps<"/agents">)
                 ) : (
                   <div className="text-xs">
                     <div>Gnani · <span className="font-mono">{a.botId}</span></div>
-                    <div className="text-muted">{a.environment} · tester {a.countryCode} ••••{a.phone.slice(-4)}</div>
+                    <div className="text-muted">{a.environment} · console evidence import</div>
                   </div>
                 )}
               </td>
               <td className={td}><Chip value={a.status} /></td>
               <td className={`${td} text-xs`}>
-                {a.provider === "demo" ? "Not needed" : a.hasSecret ? (a.status === "error" ? "Key rejected or lacks permission" : "Encrypted API key on file") : "Missing"}
+                {a.provider === "demo" ? "Simulated" : "Import transcripts in each run"}
               </td>
               <td className={`${td} text-xs text-muted`}>{when(a.lastTestedAt)}</td>
               <td className={td}>
                 <form action={testConnectionAction.bind(null, a.id)}>
-                  <Submit className={btnSecondary} pendingText="Checking…">Test connection</Submit>
+                  <Submit className={btnSecondary} pendingText="Checking…">Check setup</Submit>
                 </form>
               </td>
             </tr>

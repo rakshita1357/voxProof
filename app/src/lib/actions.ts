@@ -5,9 +5,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { audit, id, mutate, read } from "./db";
-import { AgentInput, FindingDisposition, PersonaInput, RunInput, ScenarioInput, firstError } from "./schemas";
+import { AgentInput, EvidenceInput, FindingDisposition, PersonaInput, RunInput, ScenarioInput, firstError } from "./schemas";
 import { rateLimit, requireSession } from "./security";
-import { advanceRun, cancelRun, createAgent, createRun, retryCases, testConnection } from "./service";
+import { advanceRun, cancelRun, createAgent, createRun, importEvidence, retryCases, testConnection } from "./service";
 import { SESSION_COOKIE, createSessionToken } from "./session";
 
 export type FormState = { error?: string } | undefined;
@@ -67,6 +67,34 @@ export async function saveScenario(scenarioId: string | null, _: FormState, fd: 
   redirect("/scenarios");
 }
 
+export async function importScenariosAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireSession();
+  try {
+    const raw = String(fd.get("scenarios") ?? "");
+    if (raw.length > 1_000_000) throw new Error("Scenario batch is too large");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.length || parsed.length > 1000) throw new Error("Provide an array of 1 to 1,000 scenarios");
+    const scenarios = parsed.map((s) => {
+      const result = ScenarioInput.safeParse({ ...s,
+        callerScript: Array.isArray(s.callerScript) ? s.callerScript.join("\n") : s.callerScript,
+        requiredPhrases: Array.isArray(s.requiredPhrases) ? s.requiredPhrases.join(",") : s.requiredPhrases ?? "",
+        prohibitedPhrases: Array.isArray(s.prohibitedPhrases) ? s.prohibitedPhrases.join(",") : s.prohibitedPhrases ?? "",
+        expectedDispositions: Array.isArray(s.expectedDispositions) ? s.expectedDispositions.join(",") : s.expectedDispositions ?? "",
+      });
+      if (!result.success) throw new Error(firstError(result.error));
+      return result.data;
+    });
+    await mutate((db) => {
+      if (db.scenarios.length + scenarios.length > 5000) throw new Error("Workspace limit is 5,000 scenarios");
+      const updatedAt = new Date().toISOString();
+      db.scenarios.push(...scenarios.map((s) => ({ ...s, id: id(), version: 1, updatedAt })));
+      audit(db, "scenarios.imported", "batch", { count: scenarios.length });
+    });
+  } catch (e) { return { error: e instanceof Error ? e.message : "Invalid scenario JSON" }; }
+  revalidatePath("/scenarios");
+  return {};
+}
+
 export async function duplicateScenario(scenarioId: string) {
   await requireSession();
   const newId = id();
@@ -107,6 +135,22 @@ export async function createRunAction(_: FormState, fd: FormData): Promise<FormS
   }
   after(() => advanceRun(runId));
   redirect(`/runs/${runId}`);
+}
+
+export async function importEvidenceAction(runId: string, _: FormState, fd: FormData): Promise<FormState> {
+  await requireSession();
+  try {
+    rateLimit("evidence.import", 30);
+    const raw = String(fd.get("evidence") ?? "");
+    if (raw.length > 500_000) throw new Error("Evidence batch is too large");
+    const entries = EvidenceInput.parse(JSON.parse(raw));
+    await importEvidence(runId, entries);
+    after(() => advanceRun(runId));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Invalid evidence JSON" };
+  }
+  revalidatePath(`/runs/${runId}`);
+  return {};
 }
 
 export async function cancelRunAction(runId: string) {

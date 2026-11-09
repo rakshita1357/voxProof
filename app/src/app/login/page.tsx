@@ -15,7 +15,7 @@ export default function LoginPage() {
             Test the conversation before your customers do.
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-white/60">
-            VoxProof places real test calls through your Gnani agent, scores every turn, and tells you what to change.
+            VoxProof scores real Gnani conversations against your scenarios and shows exactly what to change.
           </p>
         </div>
 

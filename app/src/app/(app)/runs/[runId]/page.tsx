@@ -6,6 +6,7 @@ import { cancelRunAction, retestAction, retryCasesAction } from "@/lib/actions";
 import { readPage } from "@/lib/db";
 import { MIN_P95_SAMPLES, compareRuns, runMetrics } from "@/lib/metrics";
 import type { Severity } from "@/lib/types";
+import { EvidenceImport } from "@/components/evidence-import";
 
 const SEVS: Severity[] = ["critical", "high", "medium", "low"];
 
@@ -50,7 +51,7 @@ export default async function RunPage({ params }: PageProps<"/runs/[runId]">) {
         <span className="flex flex-wrap items-center gap-2">
           <Chip value={run.status} /> {run.simulated && <Chip value="simulated" label="Simulated data" />}
           <span>Started {when(run.startedAt ?? run.createdAt)}</span>
-          <RunPoller runId={run.id} active={active} />
+          <RunPoller runId={run.id} active={active && (agent?.provider !== "gnani" || cases.some((c) => c.status === "evaluating"))} />
         </span>
       </PageHeader>
 
@@ -68,7 +69,7 @@ export default async function RunPage({ params }: PageProps<"/runs/[runId]">) {
         </div>
         <div className="mt-6">
           <div className="mb-2 flex justify-between text-[13px]">
-            <span className="font-medium">{finished} of {cases.length} calls finished</span>
+            <span className="font-medium">{finished} of {cases.length} cases evaluated</span>
             <span className="text-muted">
               {m.errors ? `${m.errors} error(s). ` : ""}{m.insufficient ? `${m.insufficient} without enough data. ` : ""}
               {m.passed + m.failed < 5 && "Small sample: rates are indicative."}
@@ -91,7 +92,8 @@ export default async function RunPage({ params }: PageProps<"/runs/[runId]">) {
         </div>
       </Hero>
 
-      <Card title="Test matrix" className="mb-5" actions={<span className="text-[13px] text-muted">scenarios down, personas across. Click a square to open the call.</span>}>
+      {agent?.provider === "gnani" && active && <EvidenceImport runId={run.id} firstCaseId={cases.find((c) => c.status === "queued")?.id} remaining={cases.filter((c) => c.status === "queued").length} />}
+      <Card title="Test matrix" className="mb-5" actions={<span className="text-[13px] text-muted">scenarios down, personas across. Click a square to open the case.</span>}>
         <TestMatrix runId={run.id} scenarios={run.snapshot.scenarios} personas={run.snapshot.personas} cases={cases} />
       </Card>
 
@@ -161,6 +163,7 @@ export default async function RunPage({ params }: PageProps<"/runs/[runId]">) {
               <tr key={c.id}>
                 <td className={td}>
                   <Link href={`/runs/${run.id}/cases/${c.id}`} className="font-medium hover:text-accent">{scen(c.scenarioId)?.title}</Link>
+                  {agent?.provider === "gnani" && <div className="mt-0.5 font-mono text-[10px] text-muted">caseId: {c.id}</div>}
                   {run.config.samples > 1 && <span className="text-xs text-muted"> #{c.sample + 1}</span>}
                   {c.error && <div className="mt-0.5 text-xs text-fail">{c.error}</div>}
                 </td>

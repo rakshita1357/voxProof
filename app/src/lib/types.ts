@@ -75,7 +75,7 @@ export interface CallInfo {
   startTime: number | null;
   endTime: number | null;
   avgAgentLatencySec: number | null;
-  matchedBy?: "name" | "time-window" | "simulated";
+  matchedBy?: "name" | "time-window" | "simulated" | "imported";
 }
 
 export type CheckStatus = "pass" | "fail" | "unverified" | "insufficient_data";

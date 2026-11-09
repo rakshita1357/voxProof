@@ -42,12 +42,12 @@ export default async function Overview({ searchParams }: PageProps<"/">) {
   if (!db.agents.length)
     return (
       <>
-        <PageHeader title="Welcome to VoxProof">Three steps to your first scored test call.</PageHeader>
+        <PageHeader title="Welcome to VoxProof">Three steps to your first scored QA case.</PageHeader>
         <ol className="grid gap-4 md:grid-cols-3">
           {[
-            ["Connect a Gnani agent", "Add the botId, an API key and a tester number Gnani has whitelisted."],
+            ["Register a Gnani agent", "Create it in the Gnani console, then add its botId here."],
             ["Pick scenarios and personas", "Start with the built-in library: promise to pay, wrong number, callback, and four caller personas."],
-            ["Launch and review", "Watch calls complete, open any failure for the exact turns, and get the change to make in Gnani."],
+            ["Import and review", "Test in Gnani, import actual conversations, and review evidence-backed findings."],
           ].map(([t, d], i) => (
             <li key={t} className="rounded-xl border border-line bg-surface p-5">
               <span className="grid h-7 w-7 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent">{i + 1}</span>
@@ -100,7 +100,7 @@ export default async function Overview({ searchParams }: PageProps<"/">) {
         </Hero>
       ) : (
         <Empty title="No runs yet" icon={<PhoneCall size={20} />} action={<Link href="/runs/new" className={btnPrimary}>New test run</Link>}>
-          Your agent is connected. Launch a run to place the first test calls.
+          Your agent is registered. Create a run and import Gnani conversation evidence to score it.
         </Empty>
       )}
 

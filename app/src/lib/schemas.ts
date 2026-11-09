@@ -15,15 +15,12 @@ export const AgentInput = z
     provider: z.literal("gnani"),
     botId: z.string().trim().max(64).regex(/^[A-Za-z0-9_-]*$/, "Agent ID may only contain letters, digits, - and _"),
     environment: z.enum(["development", "staging", "production"]).default("development"),
-    apiKey: z.string().trim().max(500).optional(),
     phone: z.string().trim().max(15).regex(/^\d*$/, "Phone must be digits only, without country code"),
     countryCode: z.string().trim().regex(/^\+\d{1,4}$/, "Country code like +91"),
     authorized: z.literal("on", { message: "You must confirm you are authorised to test this agent and number" }),
   })
   .superRefine((v, ctx) => {
     if (!v.botId) ctx.addIssue({ code: "custom", path: ["botId"], message: "Gnani agent ID (botId) is required" });
-    if (!v.apiKey) ctx.addIssue({ code: "custom", path: ["apiKey"], message: "Gnani API key is required" });
-    if (v.phone.length < 6) ctx.addIssue({ code: "custom", path: ["phone"], message: "Whitelisted tester phone is required" });
   });
 
 export const ScenarioInput = z.object({
@@ -50,13 +47,26 @@ export const PersonaInput = z.object({
 
 export const RunInput = z.object({
   agentId: z.string().uuid(),
-  scenarioIds: z.array(z.string().min(1)).min(1).max(20),
+  scenarioIds: z.array(z.string().min(1)).min(1).max(1000),
   personaIds: z.array(z.string().min(1)).min(1).max(10),
   samples: z.coerce.number().int().min(1).max(3),
   language: z.string().trim().min(2).max(20),
   passThreshold: z.coerce.number().min(0).max(1).default(0.7),
   baselineRunId: z.string().uuid().optional(),
 });
+
+export const EvidenceInput = z.array(z.object({
+  caseId: z.string().uuid(),
+  conversationId: z.string().min(1).max(128),
+  disposition: z.string().max(80).optional(),
+  turns: z.array(z.object({
+    role: z.enum(["agent", "caller"]),
+    text: z.string().min(1).max(20_000),
+    t: z.number().finite().nonnegative(),
+    interrupted: z.boolean().optional(),
+    language: z.string().max(30).optional(),
+  })).min(2).max(500),
+})).min(1).max(100);
 
 export const FindingDisposition = z.enum(["open", "false_positive", "accepted_risk", "fixed"]);
 

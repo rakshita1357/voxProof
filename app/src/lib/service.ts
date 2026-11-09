@@ -7,10 +7,10 @@ import { audit, id, mutate, read } from "./db";
 import { evaluateCase } from "./evaluation";
 import { latencies, runMetrics } from "./metrics";
 import type { AgentInput, RunInput } from "./schemas";
-import { decrypt, encrypt, redact } from "./security";
-import type { Agent, DB, Run, TestCase } from "./types";
+import { decrypt, redact } from "./security";
+import type { Agent, DB, Run, TestCase, Turn } from "./types";
 
-const MAX_CASES = { gnani: 12, demo: 36 } as const;
+const MAX_CASES = { gnani: 1000, demo: 36 } as const;
 const CALL_TIMEOUT_SEC = 15 * 60;
 const MAX_ATTEMPTS = 3;
 
@@ -24,8 +24,7 @@ export async function createAgent(v: z.output<typeof AgentInput>) {
     environment: v.environment,
     phone: v.phone,
     countryCode: v.countryCode,
-    secret: v.provider === "gnani" && v.apiKey ? encrypt(v.apiKey) : undefined,
-    status: "untested",
+    status: v.provider === "gnani" ? "connected" : "untested",
     authorizedAt: now,
     createdAt: now,
   };
@@ -39,6 +38,14 @@ export async function createAgent(v: z.output<typeof AgentInput>) {
 export async function testConnection(agentId: string) {
   const agent = (await read()).agents.find((a) => a.id === agentId);
   if (!agent) throw new Error("Agent not found");
+  if (agent.provider === "gnani") {
+    const check = {
+      ok: true, checkedAt: new Date().toISOString(), message: "Ready for evidence import (agent access unverified)",
+      capabilities: [{ name: "Console agent ID", ok: null, detail: "Stored locally. Gnani has not verified access; import actual conversations to evaluate." }],
+    };
+    await mutate((db) => { const a = db.agents.find((x) => x.id === agentId); if (a) { a.lastCheck = check; a.status = "connected"; } });
+    return check;
+  }
   const apiKey = agent.secret ? decrypt(agent.secret) : "";
   const check = await adapters[agent.provider].validateConnection(agent, apiKey);
   check.capabilities.forEach((c) => (c.detail = redact(c.detail, apiKey)));
@@ -64,23 +71,24 @@ export async function createRun(v: z.output<typeof RunInput>) {
   if (scenarios.some((s) => !s) || personas.some((p) => !p)) throw new Error("Unknown scenario or persona");
   const total = scenarios.length * personas.length * v.samples;
   if (total > MAX_CASES[agent.provider])
-    throw new Error(`This run would place ${total} calls; the limit for ${agent.provider} agents is ${MAX_CASES[agent.provider]}`);
+    throw new Error(`This run would prepare ${total} cases; the limit for ${agent.provider} agents is ${MAX_CASES[agent.provider]}`);
 
   let agentContext: Run["snapshot"]["agentContext"];
   const adapter = adapters[agent.provider];
-  if (adapter.getAgentContext && agent.secret) {
+  if (agent.provider !== "gnani" && adapter.getAgentContext && agent.secret) {
     agentContext = await adapter.getAgentContext(agent, decrypt(agent.secret)).catch(() => undefined);
   }
 
   const run: Run = {
     id: id(),
     agentId: agent.id,
-    status: "queued",
+    status: agent.provider === "gnani" ? "running" : "queued",
     simulated: agent.provider === "demo",
     config: { scenarioIds: v.scenarioIds, personaIds: v.personaIds, samples: v.samples, language: v.language, passThreshold: v.passThreshold },
     snapshot: { agentName: agent.name, scenarios: scenarios.map((s) => ({ ...s! })), personas: personas.map((p) => ({ ...p! })), agentContext },
     baselineRunId: v.baselineRunId,
     createdAt: new Date().toISOString(),
+    startedAt: agent.provider === "gnani" ? new Date().toISOString() : undefined,
   };
   const now = run.createdAt;
   const cases: TestCase[] = scenarios.flatMap((s) =>
@@ -105,6 +113,37 @@ export async function createRun(v: z.output<typeof RunInput>) {
     audit(db, "run.created", run.id, { cases: cases.length, simulated: run.simulated });
   });
   return run.id;
+}
+
+/** Attach user-supplied Gnani console evidence to prepared cases; evaluation uses the existing pipeline. */
+export async function importEvidence(runId: string, entries: { caseId: string; conversationId: string; disposition?: string; turns: Turn[] }[]) {
+  if (!entries.length || entries.length > 100) throw new Error("Import 1 to 100 conversations per batch");
+    const seen = new Set<string>();
+    const conversations = new Set<string>();
+  await mutate((db) => {
+    const run = db.runs.find((r) => r.id === runId);
+    const agent = run && db.agents.find((a) => a.id === run.agentId);
+    if (!run || agent?.provider !== "gnani" || run.status !== "running") throw new Error("This run cannot accept console evidence");
+    for (const entry of entries) {
+      const c = db.cases.find((x) => x.id === entry.caseId && x.runId === runId);
+      if (!c || c.status !== "queued" || seen.has(c.id)) throw new Error(`Unknown, duplicate, or already imported case: ${entry.caseId}`);
+      if (entry.turns.some((turn, i) => i > 0 && turn.t < entry.turns[i - 1].t)) throw new Error(`Turn timestamps must be chronological: ${entry.caseId}`);
+      if (conversations.has(entry.conversationId) || db.cases.some((x) => x.call?.conversationId === entry.conversationId)) throw new Error(`Conversation already used: ${entry.conversationId}`);
+      seen.add(c.id);
+      conversations.add(entry.conversationId);
+    }
+    for (const entry of entries) {
+      const c = db.cases.find((x) => x.id === entry.caseId)!;
+      const times = entry.turns.map((t) => t.t);
+      Object.assign(c, {
+        status: "evaluating", transcript: entry.turns, updatedAt: new Date().toISOString(),
+        call: { conversationId: entry.conversationId, status: "ANSWERED", disposition: entry.disposition ?? null,
+          startTime: Math.min(...times), endTime: Math.max(...times), durationSec: Math.max(...times) - Math.min(...times),
+          avgAgentLatencySec: null, matchedBy: "imported" },
+      });
+    }
+    audit(db, "evidence.imported", runId, { count: entries.length });
+  });
 }
 
 export async function cancelRun(runId: string) {
@@ -191,7 +230,9 @@ async function step(runId: string): Promise<boolean> {
     const claimed = db.cases.flatMap((c) => (c.call?.conversationId && c.id !== active.id ? [c.call.conversationId] : []));
     let result;
     try {
-      result = await adapter.getConversation({ ...input(active), externalRunId: active.externalRunId!, triggeredAt: active.triggeredAt!, claimedConversationIds: claimed });
+      result = active.status === "evaluating" && active.call && active.transcript
+        ? { call: active.call, turns: active.transcript }
+        : await adapter.getConversation({ ...input(active), externalRunId: active.externalRunId!, triggeredAt: active.triggeredAt!, claimedConversationIds: claimed });
     } catch (e) {
       if (e instanceof ProviderError && e.retriable) return false;
       await updateCase(active.id, { status: "error", error: redact(errMsg(e), apiKey) });
@@ -232,6 +273,8 @@ async function step(runId: string): Promise<boolean> {
   }
 
   const next = cases.find((c) => c.status === "queued" && (c.retryAt ?? 0) <= now);
+  // Console agents are evaluated only from supplied real conversations. No Platform API access is assumed.
+  if (agent.provider === "gnani" && next) return false;
   if (next) {
     try {
       const { externalRunId } = await adapter.startConversation(input(next));

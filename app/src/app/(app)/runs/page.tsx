@@ -11,7 +11,7 @@ export default async function RunsPage({ searchParams }: PageProps<"/runs">) {
       <PageHeader title="Runs" actions={<Link href="/runs/new" className={btnPrimary}>New test run</Link>} />
       {!runs.length ? (
         <Empty title="No runs yet" action={<Link href="/runs/new" className={btnPrimary}>New test run</Link>}>
-          Launch a run to place test calls and see scored results here.
+          Create a run, import actual Gnani conversations, and see scored results here.
         </Empty>
       ) : (
         <Table head={["Run", "Status", "Cases", "Pass rate", "Median latency", "Baseline"]}>

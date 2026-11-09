@@ -9,8 +9,8 @@ export default function NewAgentPage() {
   const [state, action] = useActionState(createAgentAction, undefined);
   return (
     <>
-      <PageHeader title="Connect Gnani agent" crumbs={[{ href: "/agents", label: "Agents" }]}>
-        Connect a Gnani Inya voice agent and its approved tester number. VoxProof reads the completed call transcript, disposition, timing, and recording from Gnani.
+      <PageHeader title="Register Gnani agent" crumbs={[{ href: "/agents", label: "Agents" }]}>
+        Create your agent in the Gnani console, then register its ID here. VoxProof evaluates conversations you import; no Agent Builder API key is needed.
       </PageHeader>
       <form action={action} className="max-w-2xl space-y-4">
         <input type="hidden" name="provider" value="gnani" />
@@ -32,34 +32,18 @@ export default function NewAgentPage() {
                 <option value="production">production</option>
               </select>
             </div>
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="apiKey">API key (x-api-key)</label>
-              <input id="apiKey" name="apiKey" type="password" required autoComplete="off" className="input font-mono" />
-              <p className="mt-1 text-xs text-muted">Encrypted at rest and never shown again. The key needs <code>agents</code> and <code>conversations</code> permissions.</p>
-            </div>
           </div>
         </Card>
 
-        <Card title="Approved test number">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label" htmlFor="countryCode">Country code</label>
-              <input id="countryCode" name="countryCode" required defaultValue="+91" className="input" />
-            </div>
-            <div>
-              <label className="label" htmlFor="phone">Whitelisted tester number</label>
-              <input id="phone" name="phone" required inputMode="numeric" className="input" placeholder="9876543210" />
-            </div>
-            <p className="text-xs text-muted sm:col-span-2">Gnani only places test calls to numbers your account manager has whitelisted. The person or device answering follows the caller script for each test case.</p>
-          </div>
-        </Card>
+        <input type="hidden" name="countryCode" value="+91" />
+        <input type="hidden" name="phone" value="" />
 
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" name="authorized" required className="mt-1" />
-          <span>I am authorized to test this agent, and the owner of the tester number has consented to automated test calls and recordings.</span>
+          <span>I am authorized to test this agent and import its conversation evidence.</span>
         </label>
         <FormError error={state?.error} />
-        <Submit pendingText="Saving and checking connection...">Save and test connection</Submit>
+        <Submit pendingText="Registering...">Register agent</Submit>
       </form>
     </>
   );

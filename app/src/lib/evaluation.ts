@@ -175,6 +175,8 @@ const JudgeSchema = z.object({
 });
 
 const SYSTEM = `You are VoxProof's QA evaluator (${RUBRIC_VERSION}) for voice-agent test calls.
+Return only a valid JSON object matching the requested fields.
+Required JSON shape: {"status":"scored"|"insufficient_data","task_completed":"yes"|"no"|"insufficient_data","scores":{"accuracy":0.0,"language_understanding":0.0,"interruption_recovery":null,"policy_adherence":0.0},"overall":0.0,"explanation":"reason","issues":[]}. Scores must be numbers from 0 to 1 or null. Each issue, if any, must have category (task_failure, factual_error, language, interruption, policy, or other), severity (critical, high, medium, or low), title, observed, expected, evidence_turns (1-based integer array), likely_cause, recommendation, confidence (high, medium, or low), and is_inference (boolean).
 Score the AGENT's behaviour in the transcript against the scenario. Scores are 0-1; use null when a criterion was not exercised.
 Criteria: accuracy (factual/workflow correctness), language_understanding (incl. code-switching), interruption_recovery (only if the caller interrupted), policy_adherence (prohibited behaviour, privacy).
 Rules:
@@ -212,7 +214,11 @@ async function requestJudge(config: { apiKey: string; url: string; model: string
       ],
     }),
   });
-  if (!response.ok) throw new Error(`Evaluator API error ${response.status}`);
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    const detail = problem?.error?.message?.slice(0, 240);
+    throw new Error(`Evaluator API error ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
   const body: unknown = await response.json();
   const content = typeof body === "object" && body && "choices" in body && Array.isArray(body.choices)
     ? body.choices[0]?.message?.content
@@ -259,7 +265,11 @@ async function judge(c: TestCase, s: Scenario, p: Persona, run: Run): Promise<{ 
       drafts,
     };
   } catch (e) {
-    const msg = e instanceof Error && /^Evaluator API error \d+$/.test(e.message) ? e.message : "Evaluator call failed or returned invalid output";
+    const msg = e instanceof Error && /^Evaluator API error \d+/.test(e.message)
+      ? e.message
+      : e instanceof z.ZodError
+        ? `Evaluator returned invalid fields: ${e.issues.map((issue) => issue.path.join(".")).slice(0, 5).join(", ")}`
+        : "Evaluator call failed or returned invalid output";
     return { result: { status: "error", model: config.model, explanation: msg }, drafts: [] };
   }
 }

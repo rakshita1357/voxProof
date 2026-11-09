@@ -5,7 +5,7 @@
 ### Test the conversation before your customers do.
 
 **Autonomous QA for [Gnani.ai](https://gnani.ai) voice agents.**
-Run repeatable test calls, catch failures with evidence, and get specific fixes. VoxProof never touches your agent.
+Prepare repeatable QA cases, score imported Gnani conversations, and get evidence-backed fixes. VoxProof never changes your agent.
 
 `Next.js 16` · `TypeScript` · `Tailwind 4` · `Zod` · `LLM judge`
 
@@ -23,21 +23,14 @@ VoxProof turns that into a test suite.
 ## How it works
 
 ```
- ┌──────────┐   trigger_call    ┌──────────────┐    📞    ┌─────────────────┐
- │ VoxProof │ ────────────────▶ │  Gnani Inya  │ ───────▶ │ Whitelisted     │
- │  run     │                   │    agent     │          │ tester (persona)│
- └────┬─────┘                   └──────┬───────┘          └─────────────────┘
-      │  logs → stats → audio          │
-      ◀────────────────────────────────┘
-      │
-      ▼
-  Rule checks ─▶ LLM judge ─▶ Findings + fixes ─▶ Re-test ─▶ Fixed / Regressed
+Gnani console agent → real conversation evidence → VoxProof case import
+                    → rule checks + optional LLM judge → findings → re-test
 ```
 
-1. **Connect** a Gnani agent: botId, API key and a whitelisted tester number.
+1. **Register** a Gnani console agent by botId. No Agent Builder API key is required.
 2. **Pick** scenarios × personas × samples. Each combination becomes one reproducible, versioned test case.
-3. **Call**: Gnani dials the tester, who follows the persona's caller script shown in VoxProof.
-4. **Collect** the transcript, disposition code, per-turn timestamps and recording from Gnani.
+3. **Test in Gnani** using the scenario's caller script, then export or copy the conversation evidence.
+4. **Import** transcript turns, disposition and timestamps as JSON, matched to VoxProof case IDs (100 conversations per batch).
 5. **Evaluate**: deterministic checks run first, then an LLM judge scores against a versioned rubric.
 6. **Fix and verify**: apply the recommended change yourself, hit **Re-test**, and see which failures were fixed and which regressed.
 
@@ -45,7 +38,7 @@ VoxProof turns that into a test suite.
 
 | | |
 |---|---|
-| 🔌 **Gnani integration** | Built on the documented [Inya Platform API](https://docs.gnani.ai/Platform/platform-introduction): `trigger_call`, conversation logs, stats and audio. Includes a connection check with a per-permission breakdown. |
+| 🔌 **Gnani workflow** | Register an agent created in Gnani, prepare up to 1,000 QA cases per run, import real conversation transcripts, and score them. Automated Agent Builder calls/log access require separate Gnani authorization. |
 | 🎭 **Personas and scenarios** | Seeded library (interrupter, Hinglish code-switcher, vague caller and more). Editable goals, scripts, expected outcomes, severity, and versioning. |
 | ✅ **Deterministic checks** | Required and prohibited phrases, expected Gnani disposition code, and per-turn latency computed from real timestamps. |
 | 🧠 **LLM judge** | Scores accuracy, language understanding, interruption recovery and policy adherence. It must cite turns, flag inference, and return `insufficient_data` when evidence is missing. |
@@ -67,7 +60,7 @@ npm run dev                    # http://localhost:3000
 |---|:---:|---|
 | `APP_PASSWORD` | ✅ | Workspace sign-in |
 | `SESSION_SECRET` | ✅ | Signs the session cookie (32+ chars) |
-| `ENCRYPTION_KEY` | ✅ | AES-256-GCM key for stored Gnani API keys (32+ chars) |
+| `ENCRYPTION_KEY` | — | Needed only for legacy stored API credentials |
 | `EVALUATOR_PROVIDER` | — | `groq` or `openrouter`; selects its API URL and default model |
 | `EVALUATOR_API_KEY` | — | Enables the LLM judge. Without it, only deterministic checks run |
 | `EVALUATOR_API_URL` | — | Optional OpenAI-compatible `chat/completions` URL; overrides the provider URL |
@@ -76,25 +69,26 @@ npm run dev                    # http://localhost:3000
 
 Generate secrets with `openssl rand -base64 48`.
 
-> **No Gnani account yet?** Add a **Simulated agent** on the Connect page and launch a run. You'll see the whole loop in about a minute.
+> Existing simulated agents still work. New Gnani registrations use the keyless evidence import flow.
 
 ### Gnani prerequisites
 
-- An API key with **`agents`** and **`conversations`** permissions
-- The agent's **botId** (Gnani dashboard, or the List Agents API)
-- A **tester phone number whitelisted** by your Gnani account manager. Calls to any other number are rejected.
+- The agent's **botId** from the Gnani console.
+- Actual conversation transcripts with speaker roles and Unix timestamps, copied or exported from Gnani after testing.
+- No Agent Builder Platform API key is required. VoxProof cannot automatically dial or fetch private logs without access Gnani grants separately.
 
 ## API
 
 All routes need a session and validate input with Zod. Secrets never appear in a response.
 
 ```
-POST /api/agents                          save target and run a connection check
-POST /api/agents/:id/test-connection      capability check with safe diagnostics
+POST /api/agents                          register a target
+POST /api/agents/:id/test-connection      confirm local setup only
 POST /api/runs                            create a run → { runId, status }
+POST /api/runs/:id/evidence               import up to 100 conversations as JSON
 GET  /api/runs/:id                        status, metrics, findings, paginated cases
 POST /api/runs/:id/cancel                 cancel queued work
-GET  /api/cases/:id/audio                 recording, proxied from Gnani
+GET  /api/cases/:id/audio                 legacy credential-based recording route
 ```
 
 ## Project layout
@@ -104,7 +98,7 @@ app/src/
 ├── app/(app)/          overview · agents · scenarios · runs · findings
 ├── app/api/            internal API (contract above)
 ├── lib/adapters/       gnani/ (real) · demo/ (simulated) behind VoiceAgentAdapter
-├── lib/service.ts      run state machine: trigger → poll → evaluate → finalize
+├── lib/service.ts      run state machine: import → evaluate → finalize (Gnani)
 ├── lib/evaluation.ts   rule checks + LLM judge (rubric-v1)
 ├── lib/metrics.ts      pass rate, percentiles, baseline comparison (+ tests)
 └── proxy.ts            auth gate
@@ -113,13 +107,13 @@ app/src/
 ## Guardrails
 
 - 🚫 **Never edits, commits or deploys** your agent. Recommendations stay under your control.
-- 🔐 API keys are **encrypted at rest**, redacted from errors, and only used server-side.
-- ☎️ An explicit authorisation and consent checkbox is required for every target. Runs are capped at 12 calls, placed one at a time. Calls that fail on configuration (bad key, number not whitelisted) stop the whole run instead of re-dialling.
+- 🔐 Legacy stored credentials remain encrypted; new Gnani agent registrations do not request an Agent Builder key.
+- An authorisation checkbox is required when registering a Gnani agent. Keyless runs prepare up to 1,000 cases; they place no calls.
 - ⚖️ Nothing is invented. Missing latency, audio or action data is shown as *unverified* or *insufficient data*, and the judge is labelled as an aid, not ground truth.
 
 ## Known limits
 
-- **A human answers the call.** Gnani only dials whitelisted numbers, so fully automated callers need a telephony integration. That's on the roadmap.
+- **No live console control.** Without Gnani's Agent Builder Platform access, case execution and evidence collection happen in Gnani, then evidence is imported to VoxProof.
 - **Runs advance while the run page is open.** The page's polling drives the pipeline. There's no separate job runner.
 - **Single-process JSON store.** Fine for one workspace on one server. Move to Postgres before scaling out.
 - **Action outcomes are unverified.** Gnani doesn't expose backend action state, so disposition codes are reported as platform-reported.
