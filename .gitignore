@@ -10,6 +10,9 @@ app/node_modules/
 !.yarn/releases
 !.yarn/versions
 
+video-90s-2026-11-10/
+brag-output-2026-11-10-200930/
+
 # testing
 /coverage
 
